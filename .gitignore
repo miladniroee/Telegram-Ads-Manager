@@ -1,0 +1,37 @@
+
+# SQLite database and its temporary files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Compiled application binaries
+telegram-ads-manager
+*.exe
+*.out
+
+# Go build and test artifacts
+*.test
+coverage.out
+coverage.html
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
