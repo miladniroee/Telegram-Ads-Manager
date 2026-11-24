@@ -124,18 +124,9 @@ func (a *App) AllocationsPage() fyne.CanvasObject {
 			allocationAmountEntry.SetText("")
 			a.updateAllocationStatus()
 
-			// Update the selected advertisement's payment status.
-			for i := range a.Advertisements {
-				if a.Advertisements[i].ID == a.SelectedAdvertisementID {
-					balance, err := database.GetAdvertisementBalance(
-						a.DB,
-						a.SelectedAdvertisementID,
-					)
-					if err == nil {
-						a.Advertisements[i].IsPaid = balance == 0
-					}
-					break
-				}
+			// Refresh the advertisement table to show the new payment status.
+			if a.AdvertisementList != nil {
+				a.AdvertisementList.Refresh()
 			}
 
 			dialog.ShowInformation(

@@ -46,6 +46,7 @@ type App struct {
 	AdvertisementSelect *widget.Select
 	AllocationStatus    *widget.Label
 	AllocationHistory   *widget.Table
+	AdvertisementList   *widget.Table
 }
 
 // NewApp creates and prepares the application.

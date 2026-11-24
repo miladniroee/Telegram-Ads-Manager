@@ -31,10 +31,8 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 	priceEntry := widget.NewEntry()
 	priceEntry.SetPlaceHolder("Price in Toman")
 
-	paidCheck := widget.NewCheck("Payment received", nil)
 	finishedCheck := widget.NewCheck("Advertisement removed", nil)
 
-	// Advertisement table.
 	advertisementList := widget.NewTable(
 		func() (int, int) {
 			return len(a.Advertisements) + 1, 7
@@ -48,7 +46,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 			if id.Row == 0 {
 				headers := []string{
 					"Date", "Hour", "Customer",
-					"Removal date", "Price", "Paid", "Finished",
+					"Removal date", "Price", "Payment status", "Finished",
 				}
 
 				label.SetText(headers[id.Col])
@@ -58,13 +56,18 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 
 			ad := a.Advertisements[id.Row-1]
 
+			paymentStatus, err := database.GetAdvertisementPaymentStatus(a.DB, ad)
+			if err != nil {
+				paymentStatus = "Error"
+			}
+
 			values := []string{
 				ad.Date,
 				ad.Hour,
 				ad.Customer,
 				ad.RemovalDate,
 				fmt.Sprintf("%d", ad.Price),
-				boolText(ad.IsPaid),
+				paymentStatus,
 				boolText(ad.IsFinished),
 			}
 
@@ -72,6 +75,8 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 			label.TextStyle = fyne.TextStyle{}
 		},
 	)
+
+	a.AdvertisementList = advertisementList
 
 	advertisementList.OnSelected = func(id widget.TableCellID) {
 		if id.Row == 0 {
@@ -128,7 +133,6 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 			Customer:    customerEntry.Text,
 			RemovalDate: removalDateEntry.Text,
 			Price:       price,
-			IsPaid:      paidCheck.Checked,
 			IsFinished:  finishedCheck.Checked,
 		}
 
@@ -145,7 +149,6 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 		customerEntry.SetText("")
 		removalDateEntry.SetText("")
 		priceEntry.SetText("")
-		paidCheck.SetChecked(false)
 		finishedCheck.SetChecked(false)
 	})
 
@@ -308,7 +311,6 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 		widget.NewFormItem("Customer name", customerEntry),
 		widget.NewFormItem("Removal date", removalDateEntry),
 		widget.NewFormItem("Price (Toman)", priceEntry),
-		widget.NewFormItem("", paidCheck),
 		widget.NewFormItem("", finishedCheck),
 	)
 
