@@ -6,7 +6,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"telegram-ads-manager/internal/database"
@@ -62,7 +61,6 @@ func NewApp(db *sql.DB) (*App, error) {
 	}
 
 	myApp := app.New()
-	myApp.Settings().SetTheme(theme.DarkTheme())
 
 	window := myApp.NewWindow("Telegram Ads Manager")
 	window.Resize(fyne.NewSize(1100, 700))
@@ -85,7 +83,7 @@ func NewApp(db *sql.DB) (*App, error) {
 	)
 
 	newApp.PageContent = container.NewStack(
-		widget.NewLabel("Welcome to your Telegram Ads Manager!"),
+		newApp.DashboardPage(),
 	)
 
 	newApp.BuildNavigation()
