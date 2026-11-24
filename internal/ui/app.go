@@ -84,7 +84,7 @@ func NewApp(db *sql.DB) (*App, error) {
 		fyne.TextStyle{Bold: true},
 	)
 
-	newApp.PageContent = container.NewMax(
+	newApp.PageContent = container.NewStack(
 		widget.NewLabel("Welcome to your Telegram Ads Manager!"),
 	)
 
