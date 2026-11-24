@@ -7,6 +7,5 @@ type Advertisement struct {
 	Customer    string
 	RemovalDate string
 	Price       int
-	IsPaid      bool
 	IsFinished  bool
 }

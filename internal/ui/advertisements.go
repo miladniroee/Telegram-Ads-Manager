@@ -181,9 +181,6 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 		editPriceEntry := widget.NewEntry()
 		editPriceEntry.SetText(fmt.Sprintf("%d", ad.Price))
 
-		editPaidCheck := widget.NewCheck("Payment received", nil)
-		editPaidCheck.SetChecked(ad.IsPaid)
-
 		editFinishedCheck := widget.NewCheck(
 			"Advertisement removed",
 			nil,
@@ -196,7 +193,6 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 			widget.NewFormItem("Customer name", editCustomerEntry),
 			widget.NewFormItem("Removal date", editRemovalDateEntry),
 			widget.NewFormItem("Price (Toman)", editPriceEntry),
-			widget.NewFormItem("", editPaidCheck),
 			widget.NewFormItem("", editFinishedCheck),
 		}
 
@@ -246,7 +242,6 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 				ad.Customer = editCustomerEntry.Text
 				ad.RemovalDate = editRemovalDateEntry.Text
 				ad.Price = price
-				ad.IsPaid = editPaidCheck.Checked
 				ad.IsFinished = editFinishedCheck.Checked
 
 				if err := database.UpdateAdvertisement(a.DB, ad); err != nil {

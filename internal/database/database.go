@@ -37,7 +37,6 @@ func createTables(db *sql.DB) error {
 		customer_name TEXT NOT NULL,
 		removal_date TEXT NOT NULL,
 		price INTEGER NOT NULL CHECK(price >= 0),
-		is_paid INTEGER NOT NULL DEFAULT 0,
 		is_finished INTEGER NOT NULL DEFAULT 0
 	);
 

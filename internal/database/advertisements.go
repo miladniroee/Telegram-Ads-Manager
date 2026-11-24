@@ -11,16 +11,15 @@ func SaveAdvertisement(db *sql.DB, ad *models.Advertisement) error {
 	result, err := db.Exec(`
 		INSERT INTO advertisements (
 			ad_date, ad_time, customer_name,
-			removal_date, price, is_paid, is_finished
+			removal_date, price, is_finished
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`,
 		ad.Date,
 		ad.Hour,
 		ad.Customer,
 		ad.RemovalDate,
 		ad.Price,
-		boolToInt(ad.IsPaid),
 		boolToInt(ad.IsFinished),
 	)
 	if err != nil {
@@ -39,7 +38,7 @@ func SaveAdvertisement(db *sql.DB, ad *models.Advertisement) error {
 func GetAdvertisements(db *sql.DB) ([]models.Advertisement, error) {
 	rows, err := db.Query(`
 		SELECT id, ad_date, ad_time, customer_name,
-		       removal_date, price, is_paid, is_finished
+		       removal_date, price, is_finished
 		FROM advertisements
 		ORDER BY ad_date DESC, ad_time DESC, id DESC
 	`)
@@ -52,7 +51,7 @@ func GetAdvertisements(db *sql.DB) ([]models.Advertisement, error) {
 
 	for rows.Next() {
 		var ad models.Advertisement
-		var hour, isPaid, isFinished int
+		var hour, isFinished int
 
 		err := rows.Scan(
 			&ad.ID,
@@ -61,7 +60,6 @@ func GetAdvertisements(db *sql.DB) ([]models.Advertisement, error) {
 			&ad.Customer,
 			&ad.RemovalDate,
 			&ad.Price,
-			&isPaid,
 			&isFinished,
 		)
 		if err != nil {
@@ -69,7 +67,6 @@ func GetAdvertisements(db *sql.DB) ([]models.Advertisement, error) {
 		}
 
 		ad.Hour = fmt.Sprintf("%02d", hour)
-		ad.IsPaid = isPaid == 1
 		ad.IsFinished = isFinished == 1
 
 		advertisements = append(advertisements, ad)
@@ -82,7 +79,7 @@ func UpdateAdvertisement(db *sql.DB, ad models.Advertisement) error {
 	_, err := db.Exec(`
 		UPDATE advertisements
 		SET ad_date = ?, ad_time = ?, customer_name = ?,
-		    removal_date = ?, price = ?, is_paid = ?, is_finished = ?
+		    removal_date = ?, price = ?, is_finished = ?
 		WHERE id = ?
 	`,
 		ad.Date,
@@ -90,7 +87,6 @@ func UpdateAdvertisement(db *sql.DB, ad models.Advertisement) error {
 		ad.Customer,
 		ad.RemovalDate,
 		ad.Price,
-		boolToInt(ad.IsPaid),
 		boolToInt(ad.IsFinished),
 		ad.ID,
 	)
