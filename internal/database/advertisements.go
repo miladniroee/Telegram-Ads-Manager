@@ -76,7 +76,22 @@ func GetAdvertisements(db *sql.DB) ([]models.Advertisement, error) {
 }
 
 func UpdateAdvertisement(db *sql.DB, ad models.Advertisement) error {
-	_, err := db.Exec(`
+	// Calculate how much has already been allocated to this advertisement.
+	allocatedAmount, err := GetAdvertisementPaidAmount(db, ad.ID)
+	if err != nil {
+		return fmt.Errorf("checking allocated payments: %w", err)
+	}
+
+	// Prevent reducing the price below the amount already paid.
+	if ad.Price < allocatedAmount {
+		return fmt.Errorf(
+			"cannot reduce the advertisement price below allocated payments: allocated %d Toman, new price %d Toman",
+			allocatedAmount,
+			ad.Price,
+		)
+	}
+
+	_, err = db.Exec(`
 		UPDATE advertisements
 		SET ad_date = ?, ad_time = ?, customer_name = ?,
 		    removal_date = ?, price = ?, is_finished = ?

@@ -91,7 +91,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 	advertisementList.SetColumnWidth(2, 150)
 	advertisementList.SetColumnWidth(3, 110)
 	advertisementList.SetColumnWidth(4, 100)
-	advertisementList.SetColumnWidth(5, 70)
+	advertisementList.SetColumnWidth(5, 150)
 	advertisementList.SetColumnWidth(6, 90)
 
 	// Add advertisement button.
@@ -344,8 +344,8 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 // boolText converts a boolean value to Yes or No.
 func boolText(value bool) string {
 	if value {
-		return "Yes"
+		return "✅"
 	}
 
-	return "No"
+	return "❌"
 }

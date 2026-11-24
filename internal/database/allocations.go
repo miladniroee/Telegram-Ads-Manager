@@ -184,7 +184,7 @@ func GetAdvertisementPaymentStatus(
 	}
 
 	if paidAmount < ad.Price {
-		return "Partially Paid", nil
+		return "🟡", nil
 	}
 
 	return "Paid", nil
