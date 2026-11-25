@@ -14,6 +14,9 @@ import (
 
 // AllocationsPage creates the payment allocation screen.
 func (a *App) AllocationsPage() fyne.CanvasObject {
+	var selectedAllocationID int64
+	var selectedAllocationAmount int
+
 	a.PaymentSelect = widget.NewSelect(
 		[]string{},
 		func(value string) {
@@ -82,6 +85,148 @@ func (a *App) AllocationsPage() fyne.CanvasObject {
 
 			label.SetText(values[id.Col])
 			label.TextStyle = fyne.TextStyle{}
+		},
+	)
+
+	a.AllocationHistory.OnSelected = func(id widget.TableCellID) {
+		if id.Row == 0 {
+			return
+		}
+
+		allocations, err := database.GetPaymentAllocations(a.DB)
+		if err != nil {
+			dialog.ShowError(err, a.Window)
+			return
+		}
+
+		index := id.Row - 1
+		if index < 0 || index >= len(allocations) {
+			return
+		}
+
+		selectedAllocationID = allocations[index].ID
+		selectedAllocationAmount = allocations[index].Amount
+	}
+
+	editAllocationButton := widget.NewButton(
+		"Edit Allocation",
+		func() {
+			if selectedAllocationID == 0 {
+				dialog.ShowInformation(
+					"No Allocation Selected",
+					"Please select an allocation from the history table.",
+					a.Window,
+				)
+				return
+			}
+
+			amountEntry := widget.NewEntry()
+			amountEntry.SetText(strconv.Itoa(selectedAllocationAmount))
+
+			form := dialog.NewForm(
+				"Edit Allocation",
+				"Save",
+				"Cancel",
+				[]*widget.FormItem{
+					widget.NewFormItem("Amount (Toman)", amountEntry),
+				},
+				func(confirmed bool) {
+					if !confirmed {
+						return
+					}
+
+					newAmount, err := strconv.Atoi(amountEntry.Text)
+					if err != nil || newAmount <= 0 {
+						dialog.ShowInformation(
+							"Invalid Amount",
+							"Enter a valid amount greater than zero.",
+							a.Window,
+						)
+						return
+					}
+
+					err = database.UpdateAllocationAmount(
+						a.DB,
+						selectedAllocationID,
+						newAmount,
+					)
+					if err != nil {
+						dialog.ShowError(err, a.Window)
+						return
+					}
+
+					selectedAllocationID = 0
+					selectedAllocationAmount = 0
+
+					a.AllocationHistory.UnselectAll()
+					a.AllocationHistory.Refresh()
+					a.updateAllocationStatus()
+
+					if a.AdvertisementList != nil {
+						a.AdvertisementList.Refresh()
+					}
+
+					dialog.ShowInformation(
+						"Allocation Updated",
+						"Allocation was successfully updated.",
+						a.Window,
+					)
+				},
+				a.Window,
+			)
+
+			form.Show()
+		},
+	)
+
+	deleteAllocationButton := widget.NewButton(
+		"Delete Allocation",
+		func() {
+			if selectedAllocationID == 0 {
+				dialog.ShowInformation(
+					"No Allocation Selected",
+					"Please select an allocation from the history table.",
+					a.Window,
+				)
+				return
+			}
+
+			dialog.ShowConfirm(
+				"Delete Allocation",
+				"Are you sure you want to delete this allocation?",
+				func(confirmed bool) {
+					if !confirmed {
+						return
+					}
+
+					err := database.DeleteAllocation(
+						a.DB,
+						selectedAllocationID,
+					)
+					if err != nil {
+						dialog.ShowError(err, a.Window)
+						return
+					}
+
+					selectedAllocationID = 0
+					selectedAllocationAmount = 0
+
+					a.AllocationHistory.UnselectAll()
+					a.AllocationHistory.Refresh()
+					a.updateAllocationStatus()
+
+					if a.AdvertisementList != nil {
+						a.AdvertisementList.Refresh()
+					}
+
+					dialog.ShowInformation(
+						"Allocation Deleted",
+						"Allocation was successfully deleted.",
+						a.Window,
+					)
+				},
+				a.Window,
+			)
 		},
 	)
 
@@ -156,6 +301,10 @@ func (a *App) AllocationsPage() fyne.CanvasObject {
 			"Allocation History",
 			fyne.TextAlignLeading,
 			fyne.TextStyle{Bold: true},
+		),
+		container.NewHBox(
+			editAllocationButton,
+			deleteAllocationButton,
 		),
 		container.NewScroll(a.AllocationHistory),
 	)

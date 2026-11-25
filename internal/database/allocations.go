@@ -189,3 +189,130 @@ func GetAdvertisementPaymentStatus(
 
 	return "Paid", nil
 }
+
+// UpdateAllocationAmount changes the amount of an existing allocation.
+// It checks that the new amount does not exceed either available balance.
+func UpdateAllocationAmount(
+	db *sql.DB,
+	allocationID int64,
+	newAmount int,
+) error {
+	if newAmount <= 0 {
+		return fmt.Errorf("allocation amount must be greater than zero")
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var paymentID int64
+	var advertisementID int64
+
+	err = tx.QueryRow(`
+		SELECT payment_id, advertisement_id
+		FROM payment_allocations
+		WHERE id = ?
+	`, allocationID).Scan(&paymentID, &advertisementID)
+
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("allocation not found")
+	}
+	if err != nil {
+		return err
+	}
+
+	var paymentAmount int
+	err = tx.QueryRow(
+		`SELECT amount FROM payments WHERE id = ?`,
+		paymentID,
+	).Scan(&paymentAmount)
+	if err != nil {
+		return fmt.Errorf("could not find payment: %w", err)
+	}
+
+	var otherPaymentAllocations int
+	err = tx.QueryRow(`
+		SELECT COALESCE(SUM(allocated_amount), 0)
+		FROM payment_allocations
+		WHERE payment_id = ? AND id != ?
+	`, paymentID, allocationID).Scan(&otherPaymentAllocations)
+	if err != nil {
+		return err
+	}
+
+	paymentRemaining := paymentAmount - otherPaymentAllocations
+	if newAmount > paymentRemaining {
+		return fmt.Errorf(
+			"amount exceeds the payment's available balance of %d Toman",
+			paymentRemaining,
+		)
+	}
+
+	var adPrice int
+	err = tx.QueryRow(
+		`SELECT price FROM advertisements WHERE id = ?`,
+		advertisementID,
+	).Scan(&adPrice)
+	if err != nil {
+		return fmt.Errorf("could not find advertisement: %w", err)
+	}
+
+	var otherAdvertisementAllocations int
+	err = tx.QueryRow(`
+		SELECT COALESCE(SUM(allocated_amount), 0)
+		FROM payment_allocations
+		WHERE advertisement_id = ? AND id != ?
+	`, advertisementID, allocationID).Scan(&otherAdvertisementAllocations)
+	if err != nil {
+		return err
+	}
+
+	adRemaining := adPrice - otherAdvertisementAllocations
+	if newAmount > adRemaining {
+		return fmt.Errorf(
+			"amount exceeds the advertisement's outstanding balance of %d Toman",
+			adRemaining,
+		)
+	}
+
+	_, err = tx.Exec(`
+		UPDATE payment_allocations
+		SET allocated_amount = ?
+		WHERE id = ?
+	`, newAmount, allocationID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// DeleteAllocation removes an allocation.
+// The allocated amount becomes available again for both the payment and advertisement.
+func DeleteAllocation(db *sql.DB, allocationID int64) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(
+		`DELETE FROM payment_allocations WHERE id = ?`,
+		allocationID,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("allocation not found")
+	}
+
+	return tx.Commit()
+}
