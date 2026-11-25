@@ -33,7 +33,7 @@ func ExportAdvertisementsCSV(db *sql.DB, destination string) error {
 			ad.RemovalDate,
 			strconv.Itoa(ad.Price),
 			strconv.FormatBool(ad.IsFinished),
-			paymentStatus,
+			paymentStatus.Label(),
 		})
 	}
 

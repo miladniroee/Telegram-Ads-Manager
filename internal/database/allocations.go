@@ -173,21 +173,21 @@ func GetAdvertisementPaidAmount(db *sql.DB, advertisementID int64) (int, error) 
 func GetAdvertisementPaymentStatus(
 	db *sql.DB,
 	ad models.Advertisement,
-) (string, error) {
+) (models.PaymentStatus, error) {
 	paidAmount, err := GetAdvertisementPaidAmount(db, ad.ID)
 	if err != nil {
-		return "", err
+		return models.Unpaid, err
 	}
 
 	if paidAmount == 0 {
-		return "Unpaid", nil
+		return models.Unpaid, nil
 	}
 
 	if paidAmount < ad.Price {
-		return "🟡", nil
+		return models.PartiallyPaid, nil
 	}
 
-	return "Paid", nil
+	return models.Paid, nil
 }
 
 // UpdateAllocationAmount changes the amount of an existing allocation.

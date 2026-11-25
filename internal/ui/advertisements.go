@@ -76,8 +76,13 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 			ad := a.Advertisements[filteredIndices[id.Row-1]]
 
 			paymentStatus, err := database.GetAdvertisementPaymentStatus(a.DB, ad)
+
+			var PaymentStatus string = ""
+
 			if err != nil {
-				paymentStatus = "Error"
+				PaymentStatus = "Error"
+			} else {
+				PaymentStatus = paymentStatus.Emoji()
 			}
 
 			values := []string{
@@ -86,7 +91,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 				ad.Customer,
 				ad.RemovalDate,
 				fmt.Sprintf("%d", ad.Price),
-				paymentStatus,
+				PaymentStatus,
 				boolText(ad.IsFinished),
 			}
 
@@ -140,13 +145,13 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 
 				switch payment {
 				case "Unpaid":
-					matches = status == "Unpaid"
+					matches = status.IsUnpaid()
 
 				case "Partially paid":
-					matches = status == "🟡"
+					matches = status.IsPartiallyPaid()
 
 				case "Paid":
-					matches = status == "Paid"
+					matches = status.IsPaid()
 				}
 
 				if !matches {
