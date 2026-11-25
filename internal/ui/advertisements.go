@@ -285,10 +285,10 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 		editFinishedCheck.SetChecked(ad.IsFinished)
 
 		fields := []*widget.FormItem{
-			widget.NewFormItem("Advertisement date", editDateEntry),
+			widget.NewFormItem("Date", datePickerField(a.Window, editDateEntry)),
 			widget.NewFormItem("Advertisement hour", editHourEntry),
 			widget.NewFormItem("Customer name", editCustomerEntry),
-			widget.NewFormItem("Removal date", editRemovalDateEntry),
+			widget.NewFormItem("Removal date", datePickerField(a.Window, editRemovalDateEntry)),
 			widget.NewFormItem("Price (Toman)", editPriceEntry),
 			widget.NewFormItem("", editFinishedCheck),
 		}
@@ -398,10 +398,10 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 
 	// Advertisement form.
 	form := widget.NewForm(
-		widget.NewFormItem("Advertisement date", dateEntry),
+		widget.NewFormItem("Date", datePickerField(a.Window, dateEntry)),
 		widget.NewFormItem("Advertisement hour", hourEntry),
 		widget.NewFormItem("Customer name", customerEntry),
-		widget.NewFormItem("Removal date", removalDateEntry),
+		widget.NewFormItem("Removal date", datePickerField(a.Window, removalDateEntry)),
 		widget.NewFormItem("Price (Toman)", priceEntry),
 		widget.NewFormItem("", finishedCheck),
 	)

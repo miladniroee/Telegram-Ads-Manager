@@ -2,7 +2,11 @@ module telegram-ads-manager
 
 go 1.26.8
 
-require fyne.io/fyne/v2 v2.8.2
+require (
+	fyne.io/fyne/v2 v2.8.2
+	github.com/jalaali/go-jalaali v0.1.0
+	modernc.org/sqlite v1.63.0
+)
 
 require (
 	fyne.io/systray v1.12.3-0.20260810170012-af4e8e793ec4 // indirect
@@ -47,5 +51,4 @@ require (
 	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.63.0 // indirect
 )
