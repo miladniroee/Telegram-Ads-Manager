@@ -11,6 +11,7 @@ import (
 
 // SettingsPage creates the settings screen.
 func (a *App) SettingsPage() fyne.CanvasObject {
+	// Database backup
 	backupPathEntry := widget.NewEntry()
 	backupPathEntry.SetText("telegram_ads_backup.db")
 	backupPathEntry.SetPlaceHolder("Enter backup file path")
@@ -27,7 +28,6 @@ func (a *App) SettingsPage() fyne.CanvasObject {
 			}
 
 			backupStatusLabel.SetText("Backup created successfully.")
-
 			dialog.ShowInformation(
 				"Backup Created",
 				"Your database backup was created successfully.",
@@ -36,6 +36,7 @@ func (a *App) SettingsPage() fyne.CanvasObject {
 		},
 	)
 
+	// Database restore
 	restorePathEntry := widget.NewEntry()
 	restorePathEntry.SetPlaceHolder("Enter the backup file path")
 
@@ -61,16 +62,12 @@ func (a *App) SettingsPage() fyne.CanvasObject {
 						return
 					}
 
-					err := database.RestoreBackup(
-						a.DB,
-						restorePathEntry.Text,
-					)
+					err := database.RestoreBackup(a.DB, restorePathEntry.Text)
 					if err != nil {
 						dialog.ShowError(err, a.Window)
 						return
 					}
 
-					// Reload the in-memory data after restoring.
 					advertisements, err := database.GetAdvertisements(a.DB)
 					if err != nil {
 						dialog.ShowError(err, a.Window)
@@ -112,7 +109,61 @@ func (a *App) SettingsPage() fyne.CanvasObject {
 		},
 	)
 
-	return container.NewVBox(
+	// CSV export
+	advertisementExportEntry := widget.NewEntry()
+	advertisementExportEntry.SetText("advertisements.csv")
+
+	paymentExportEntry := widget.NewEntry()
+	paymentExportEntry.SetText("payments.csv")
+
+	allocationExportEntry := widget.NewEntry()
+	allocationExportEntry.SetText("allocations.csv")
+
+	exportButton := func(
+		buttonLabel string,
+		entry *widget.Entry,
+		export func(string) error,
+	) *widget.Button {
+		return widget.NewButton(buttonLabel, func() {
+			err := export(entry.Text)
+			if err != nil {
+				dialog.ShowError(err, a.Window)
+				return
+			}
+
+			dialog.ShowInformation(
+				"Export Complete",
+				"CSV file created successfully:\n"+entry.Text,
+				a.Window,
+			)
+		})
+	}
+
+	exportAdvertisementsButton := exportButton(
+		"Export Advertisements",
+		advertisementExportEntry,
+		func(path string) error {
+			return database.ExportAdvertisementsCSV(a.DB, path)
+		},
+	)
+
+	exportPaymentsButton := exportButton(
+		"Export Payments",
+		paymentExportEntry,
+		func(path string) error {
+			return database.ExportPaymentsCSV(a.DB, path)
+		},
+	)
+
+	exportAllocationsButton := exportButton(
+		"Export Allocations",
+		allocationExportEntry,
+		func(path string) error {
+			return database.ExportAllocationsCSV(a.DB, path)
+		},
+	)
+
+	return container.NewScroll(container.NewVBox(
 		widget.NewLabelWithStyle(
 			"Settings",
 			fyne.TextAlignLeading,
@@ -145,5 +196,28 @@ func (a *App) SettingsPage() fyne.CanvasObject {
 		restorePathEntry,
 		restoreBackupButton,
 		restoreStatusLabel,
-	)
+
+		widget.NewSeparator(),
+
+		widget.NewLabelWithStyle(
+			"Export to CSV",
+			fyne.TextAlignLeading,
+			fyne.TextStyle{Bold: true},
+		),
+		widget.NewLabel(
+			"Export your records to CSV files that can be opened in LibreOffice Calc or Excel.",
+		),
+
+		widget.NewLabel("Advertisements"),
+		advertisementExportEntry,
+		exportAdvertisementsButton,
+
+		widget.NewLabel("Payments"),
+		paymentExportEntry,
+		exportPaymentsButton,
+
+		widget.NewLabel("Payment Allocations"),
+		allocationExportEntry,
+		exportAllocationsButton,
+	))
 }
