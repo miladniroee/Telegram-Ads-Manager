@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -33,9 +34,27 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 
 	finishedCheck := widget.NewCheck("Advertisement removed", nil)
 
+	// Search and filter controls.
+	filteredIndices := []int{}
+
+	searchEntry := widget.NewEntry()
+	searchEntry.SetPlaceHolder("Search by customer name...")
+
+	completionFilter := widget.NewSelect(
+		[]string{"All", "Active", "Completed"},
+		nil,
+	)
+	completionFilter.SetSelected("All")
+
+	paymentFilter := widget.NewSelect(
+		[]string{"All", "Unpaid", "Partially paid", "Paid"},
+		nil,
+	)
+	paymentFilter.SetSelected("All")
+
 	advertisementList := widget.NewTable(
 		func() (int, int) {
-			return len(a.Advertisements) + 1, 7
+			return len(filteredIndices) + 1, 7
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Advertisement")
@@ -54,7 +73,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 				return
 			}
 
-			ad := a.Advertisements[id.Row-1]
+			ad := a.Advertisements[filteredIndices[id.Row-1]]
 
 			paymentStatus, err := database.GetAdvertisementPaymentStatus(a.DB, ad)
 			if err != nil {
@@ -83,8 +102,81 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 			return
 		}
 
-		a.SelectedIndex = id.Row - 1
+		a.SelectedIndex = filteredIndices[id.Row-1]
 	}
+
+	// Refresh the advertisement table using the active filters.
+	refreshAdvertisementList := func() {
+		filteredIndices = filteredIndices[:0]
+
+		searchText := strings.ToLower(strings.TrimSpace(searchEntry.Text))
+		completion := completionFilter.Selected
+		payment := paymentFilter.Selected
+
+		for i, ad := range a.Advertisements {
+			// Customer-name search.
+			if searchText != "" &&
+				!strings.Contains(strings.ToLower(ad.Customer), searchText) {
+				continue
+			}
+
+			// Completion filter.
+			if completion == "Active" && ad.IsFinished {
+				continue
+			}
+
+			if completion == "Completed" && !ad.IsFinished {
+				continue
+			}
+
+			// Payment-status filter.
+			if payment != "All" {
+				status, err := database.GetAdvertisementPaymentStatus(a.DB, ad)
+				if err != nil {
+					continue
+				}
+
+				matches := false
+
+				switch payment {
+				case "Unpaid":
+					matches = status == "Unpaid"
+
+				case "Partially paid":
+					matches = status == "🟡"
+
+				case "Paid":
+					matches = status == "Paid"
+				}
+
+				if !matches {
+					continue
+				}
+			}
+
+			filteredIndices = append(filteredIndices, i)
+		}
+
+		a.SelectedIndex = -1
+		advertisementList.UnselectAll()
+		advertisementList.Refresh()
+	}
+
+	// Update the table whenever a filter changes.
+	searchEntry.OnChanged = func(_ string) {
+		refreshAdvertisementList()
+	}
+
+	completionFilter.OnChanged = func(_ string) {
+		refreshAdvertisementList()
+	}
+
+	paymentFilter.OnChanged = func(_ string) {
+		refreshAdvertisementList()
+	}
+
+	// Show all advertisements initially.
+	refreshAdvertisementList()
 
 	advertisementList.SetColumnWidth(0, 100)
 	advertisementList.SetColumnWidth(1, 60)
@@ -142,7 +234,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 		}
 
 		a.Advertisements = append(a.Advertisements, ad)
-		advertisementList.Refresh()
+		refreshAdvertisementList()
 
 		dateEntry.SetText("")
 		hourEntry.SetText("")
@@ -250,7 +342,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 				}
 
 				a.Advertisements[a.SelectedIndex] = ad
-				advertisementList.Refresh()
+				refreshAdvertisementList()
 			},
 			a.Window,
 		)
@@ -293,7 +385,7 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 
 				a.SelectedIndex = -1
 				advertisementList.UnselectAll()
-				advertisementList.Refresh()
+				refreshAdvertisementList()
 			},
 			a.Window,
 		)
@@ -328,6 +420,21 @@ func (a *App) AdvertisementsPage() fyne.CanvasObject {
 				"Advertisement List",
 				fyne.TextAlignLeading,
 				fyne.TextStyle{Bold: true},
+			),
+			container.NewGridWithColumns(
+				3,
+				container.NewVBox(
+					widget.NewLabel("Search"),
+					searchEntry,
+				),
+				container.NewVBox(
+					widget.NewLabel("Completion"),
+					completionFilter,
+				),
+				container.NewVBox(
+					widget.NewLabel("Payment"),
+					paymentFilter,
+				),
 			),
 			container.NewHBox(
 				editButton,
