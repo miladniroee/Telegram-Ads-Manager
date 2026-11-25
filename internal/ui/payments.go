@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -27,9 +28,14 @@ func (a *App) PaymentsPage() fyne.CanvasObject {
 	receiptPathEntry := widget.NewEntry()
 	receiptPathEntry.SetPlaceHolder("Optional receipt file path")
 
+	searchEntry := widget.NewEntry()
+	searchEntry.SetPlaceHolder("Search by date or description...")
+
+	filteredIndices := []int{}
+
 	paymentList := widget.NewTable(
 		func() (int, int) {
-			return len(a.Payments) + 1, 4
+			return len(filteredIndices) + 1, 5
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Payment")
@@ -39,18 +45,30 @@ func (a *App) PaymentsPage() fyne.CanvasObject {
 
 			if id.Row == 0 {
 				headers := []string{
-					"Date", "Amount (Toman)", "Description", "Receipt",
+					"Date",
+					"Amount (Toman)",
+					"Remaining (Toman)",
+					"Description",
+					"Receipt",
 				}
+
 				label.SetText(headers[id.Col])
 				label.TextStyle = fyne.TextStyle{Bold: true}
 				return
 			}
 
-			payment := a.Payments[id.Row-1]
+			payment := a.Payments[filteredIndices[id.Row-1]]
+
+			remaining, err := database.GetPaymentRemaining(a.DB, payment.ID)
+			if err != nil {
+				label.SetText("Error")
+				return
+			}
 
 			values := []string{
 				payment.PaymentDate,
 				fmt.Sprintf("%d", payment.Amount),
+				fmt.Sprintf("%d", remaining),
 				payment.Description,
 				payment.ReceiptPath,
 			}
@@ -61,9 +79,37 @@ func (a *App) PaymentsPage() fyne.CanvasObject {
 	)
 
 	paymentList.SetColumnWidth(0, 110)
-	paymentList.SetColumnWidth(1, 150)
-	paymentList.SetColumnWidth(2, 200)
+	paymentList.SetColumnWidth(1, 140)
+	paymentList.SetColumnWidth(2, 150)
 	paymentList.SetColumnWidth(3, 200)
+	paymentList.SetColumnWidth(4, 200)
+
+	refreshPaymentList := func() {
+		filteredIndices = filteredIndices[:0]
+
+		searchText := strings.ToLower(strings.TrimSpace(searchEntry.Text))
+
+		for i, payment := range a.Payments {
+			searchableText := strings.ToLower(
+				payment.PaymentDate + " " + payment.Description,
+			)
+
+			if searchText != "" &&
+				!strings.Contains(searchableText, searchText) {
+				continue
+			}
+
+			filteredIndices = append(filteredIndices, i)
+		}
+
+		paymentList.Refresh()
+	}
+
+	searchEntry.OnChanged = func(_ string) {
+		refreshPaymentList()
+	}
+
+	refreshPaymentList()
 
 	addPaymentButton := widget.NewButton("Register Payment", func() {
 		amount, err := strconv.Atoi(paymentAmountEntry.Text)
@@ -98,7 +144,7 @@ func (a *App) PaymentsPage() fyne.CanvasObject {
 		}
 
 		a.Payments = append(a.Payments, payment)
-		paymentList.Refresh()
+		refreshPaymentList()
 
 		paymentDateEntry.SetText("")
 		paymentAmountEntry.SetText("")
@@ -118,6 +164,7 @@ func (a *App) PaymentsPage() fyne.CanvasObject {
 			fyne.TextAlignLeading,
 			fyne.TextStyle{Bold: true},
 		),
+		searchEntry,
 		widget.NewForm(
 			widget.NewFormItem("Payment date", paymentDateEntry),
 			widget.NewFormItem("Amount (Toman)", paymentAmountEntry),
